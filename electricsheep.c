@@ -657,12 +657,12 @@ void copy_out_file(char *fname) {
       return;
     }
 
-    if (0 > av_open_input_file(&ictx, fname, NULL, 0, NULL)) {
+    if (0 > avformat_open_input(&ictx, fname, NULL, 0)) {
 	perror(fname);
 	exit(1);
     }
 
-    if (0 > av_find_stream_info(ictx)) {
+    if (0 > avformat_find_stream_info(ictx, NULL)) {
 	fprintf(logout, "%s: could not find codec parameters\n", fname);
 	exit(1);
     }
@@ -703,9 +703,9 @@ void copy_out_file(char *fname) {
 	}
 	output_ctx->oformat = ofmt;
 
-	st = av_new_stream(output_ctx, output_ctx->nb_streams);
-	st->stream_copy = 1;
-	av_set_parameters(output_ctx, NULL);
+	st = avformat_new_stream(output_ctx, NULL);
+	//st->stream_copy = 1;
+	//av_set_parameters(output_ctx, NULL);
 
 	icodec = ictx->streams[input_stream_index]->codec;
 	codec = output_ctx->streams[0]->codec;
@@ -723,12 +723,12 @@ void copy_out_file(char *fname) {
 	codec->height = icodec->height;
 	codec->has_b_frames = icodec->has_b_frames;
 
-	if (url_fopen(&output_ctx->pb, pipe, URL_WRONLY) < 0) {
+	if (avio_open(&output_ctx->pb, pipe, 0/*URL_WRONLY*/) < 0) {
 	    fprintf(logout, "Could not open '%s'\n", pipe);
 	    exit(1);
 	}
 
-	av_write_header(output_ctx);
+	avformat_write_header(output_ctx, NULL);
     }
 
     while (1) {
@@ -748,7 +748,7 @@ void copy_out_file(char *fname) {
 	av_free_packet(&opkt);
 	av_free_packet(&ipkt);
     }
-    av_close_input_file(ictx);
+    avformat_close_input(&ictx);
 }
 
 time_t search_time;
